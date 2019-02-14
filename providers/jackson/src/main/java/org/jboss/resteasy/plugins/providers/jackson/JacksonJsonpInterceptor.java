@@ -14,6 +14,8 @@ import javax.ws.rs.ext.Providers;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.jboss.resteasy.annotations.interception.ServerInterceptor;
 import org.jboss.resteasy.core.MediaTypeMap;
+import org.jboss.resteasy.spi.ResteasyConfiguration;
+import org.jboss.resteasy.spi.ResteasyProviderFactory;
 import org.jboss.resteasy.spi.interception.MessageBodyWriterContext;
 import org.jboss.resteasy.spi.interception.MessageBodyWriterInterceptor;
 
@@ -95,12 +97,24 @@ public class JacksonJsonpInterceptor implements MessageBodyWriterInterceptor{
     protected Providers providers;
     
     /**
+     * Is this interceptor enabled.
+     */
+    private boolean enabled = false;
+    
+    public JacksonJsonpInterceptor() {
+        ResteasyConfiguration config = ResteasyProviderFactory.getContextData(ResteasyConfiguration.class);
+        if (config != null) {
+            this.enabled = Boolean.parseBoolean(config.getParameter("resteasy.jsonp.enable"));
+        }
+    }
+    
+    /**
      * {@inheritDoc}
      */
     @Override
     public void write(MessageBodyWriterContext context) throws IOException, WebApplicationException {
         String function = uri.getQueryParameters().getFirst(callbackQueryParameter);
-        if (function != null && !function.trim().isEmpty() && !jsonpCompatibleMediaTypes.getPossible(context.getMediaType()).isEmpty()){
+        if (this.enabled && function != null && !function.trim().isEmpty() && !jsonpCompatibleMediaTypes.getPossible(context.getMediaType()).isEmpty()){
             OutputStreamWriter writer = new OutputStreamWriter(context.getOutputStream());
             
             writer.write(function + "(");
